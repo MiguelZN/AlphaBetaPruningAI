@@ -66,6 +66,7 @@ def getUserInputNumbers(n:int=12)->[int]:
 class ALPHABETA_TYPES(Enum):
     MAXIMIZER = 'maximizer'
     MINIMIZER = 'minimizer'
+    TERMINAL = 'terminal'
 
     NEGATIVE_INFINITY = '-infinity'
     POSITIVE_INFINITY = '+infinity'
@@ -91,75 +92,70 @@ class AlphaBetaEdge:
     def __str__(self):
         return 'AlphaBetaEdge: Direction='+str(self.direction)+",AlphaValue="+str(self.alpha)+",BetaValue="+str(self.beta)
 
-
 class AlphaBetaNode:
-    def __init__(self,minmaxtype:ALPHABETA_TYPES=None,heapIndex:int=-1,numberOfChildren:int=-1, parentIndex:int=-1):
-        if(heapIndex==0):
-            self.isRoot = True
-        else:
-            self.isRoot = False
-        self.minmax_type = minmaxtype
-        self.downedge = AlphaBetaEdge(direction=AlphaBetaEdge.EDGE_DIRECTION.DOWN)
-        self.upedge = AlphaBetaEdge(direction=AlphaBetaEdge.EDGE_DIRECTION.UP)
+    def __init__(self,minmaxtype:ALPHABETA_TYPES=None, isRoot:bool=False,childrenNodes=[],parentNode=None,value:int=-1):
+        self.childrenNodes = childrenNodes
+        self.isRoot = isRoot
+        self.minmaxtype = minmaxtype
+        self.parentNode = parentNode
+        self.value = value
 
 
-        self.V = 0
+
+    def __str__(self):
+        return '(Node:'+str(self.minmaxtype)+",Parent:"+str(self.parentNode)+")"#",Children:"+str(self.childrenNodes)
+
+    def __repr__(self):
+        return '(Node:'+str(self.minmaxtype)+",Parent:"+str(self.parentNode)+")"
 
 
-        #Heap:
-        self.heapIndex = heapIndex
-        self.numberOfChildren = numberOfChildren
-        self.parentIndex = parentIndex  #The parent index needs to be set by looping
 
+class MinMaxTree:
+    def __init__(self, n_Depth: int = 1, n_RootChildrenMinimizers: int = 3, n_MinimizerChildren: int = 2,
+                 n_MaximizerChildren: int = 2,listOfTerminalValues=[]):
+        self.root = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.MAXIMIZER,isRoot=True)
+        self.listOfTerminalValues = listOfTerminalValues
+        self.currentTerminalNodeIndex = 0
 
-        #Debugging:
-        if(self.numberOfChildren==-1):
-            raise Exception('ERROR:child factor was not given!')
-        if (self.heapIndex == -1):
-            raise Exception('ERROR:heap index was not given!')
-        if (self.parentIndex == -1):
-            raise Exception('ERROR:parent index was not given!')
-        if (self.minmax_type == None):
-            raise Exception('ERROR:minmax_type was not specified!')
-
-
-    def getLeftMostChildIndex(self):
-        leftchildindex = self.heapIndex*self.numberOfChildren+1
-        print("Left child index:"+str(leftchildindex))
-        return leftchildindex
-
-    def getRightMostChildIndex(self):
-        rightchildindex = (self.heapIndex * self.numberOfChildren) + self.numberOfChildren
-        print("Right child index:" + str(rightchildindex))
-        return rightchildindex
-
-    def getParentIndex(self):
-        return self.parentIndex
-
-
-class HeapMinMax:
-    def __init__(self,n_Depth:int=1,n_RootChildrenMinimizers:int=3, n_MinimizerChildren:int=2,n_MaximizerChildren:int=2):
-        self.heap = []
-        self.root = AlphaBetaNode(numberOfChildren=n_RootChildrenMinimizers, heapIndex=0,
-                                 minmaxtype=ALPHABETA_TYPES.MAXIMIZER)
-        self.heap.append(self.root)
-
-        #Setting the children root minimizers
         for i in range(n_RootChildrenMinimizers):
-            currentMinimizer = AlphaBetaNode(numberOfChildren=n_RootChildrenMinimizers, heapIndex=0,
-                                 minmaxtype=ALPHABETA_TYPES.MAXIMIZER)
-            self.heap.append()
+            currentMinimizerNode = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.MINIMIZER,parentNode=self.root,childrenNodes=[])
+            self.root.childrenNodes.append(currentMinimizerNode)
+
+            for k in range(n_MinimizerChildren):
+                currentMaximizerNode = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.MAXIMIZER,parentNode=currentMinimizerNode,childrenNodes=[])
+                currentMinimizerNode.childrenNodes.append(currentMaximizerNode)
+
+                for j in range(n_MaximizerChildren):
+                    currentTerminalValue = listOfTerminalValues[self.currentTerminalNodeIndex]
+                    currentTerminalNode = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.TERMINAL, parentNode=currentMaximizerNode,
+                                                         childrenNodes=None,value=currentTerminalValue)
+                    currentMinimizerNode.childrenNodes.append(currentTerminalNode)
+                    self.currentTerminalNodeIndex+=1
 
 
 
+        print(self.root)
+
+    def printNode(node):
+        tmp = node
+
+        if tmp.childrenNodes!=None:
+            for child in tmp.childrenNodes:
+                print(child)
+                MinMaxTree.printNode(child)
+        else:
+            print('exit')
+            return
+
+    def printTreeFromRoot(self):
+        MinMaxTree.printNode(self.root)
 
 
 #terminalstates = getUserInputNumbers(12)
-terminalstates = [4, 5435, 6, 4, 2, 5, 6, 6, 6, 4, 3, 5]
+terminalstates = [4, 545, 32, 4, 2, 5, 75, 65, 83, 4, 3, 5]
 print("Terminal states:"+str(terminalstates))
 
-print(AlphaBetaEdge(direction=AlphaBetaEdge.EDGE_DIRECTION.DOWN))
-print(ALPHABETA_TYPES.NEGATIVE_INFINITY)
 
-print(AlphaBetaNode(numberOfChildren=2,parentIndex=1,heapIndex=2,minmaxtype=ALPHABETA_TYPES.MAXIMIZER).getRightMostChildIndex())
-print('fdsfds')
+currtree = MinMaxTree(listOfTerminalValues=terminalstates)
+
+currtree.printTreeFromRoot()
