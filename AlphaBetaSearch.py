@@ -165,11 +165,14 @@ class MinMaxTree:
 
 
 
-
+leftovernodes = []
 def alphaBetaRecursion(node, alpha, beta):
     # Base Case:
     if (node.minmaxtype==ALPHABETA_TYPES.TERMINAL):
         #print("ENTERED")
+        print("CURRENT TERMINAL NODE:"+str(node.terminalValue))
+        leftovernodes.append(node.terminalValue)
+        print("LEFT OVER NODES"+str(leftovernodes))
         return node.terminalValue
     elif(node.minmaxtype==ALPHABETA_TYPES.MAXIMIZER):
         totalsum = 0
@@ -179,93 +182,55 @@ def alphaBetaRecursion(node, alpha, beta):
             #Gets each child's values
             currentvalue = alphaBetaRecursion(child,alpha,beta)
 
-
-            #Terminal Parent Maximizers:
-            #Gets the terminal node values:
-            if(isinstance(currentvalue,int)):
+            # Terminal Parent Maximizers:
+            # Gets the terminal node values:
+            if (isinstance(currentvalue, int)):
                 terminalValues.append(currentvalue)
-                print("TERMINAL VALUES:"+str(terminalValues))
-                print(node)
-                print(currentvalue)
-                alpha = max(alpha,currentvalue)
+                print("TERMINAL VALUES:" + str(terminalValues))
+                #print(node)
+                #print(currentvalue)
+                alpha = max(alpha, currentvalue)  # Sets alpha to the biggest found value
+                #print("NEW ALPHA:" + str(alpha))
                 totalsum += currentvalue
-                print(totalsum)
+                #print(totalsum)
 
-                #return(alpha,beta)
+                if (alpha >= beta):
+                    print("ALPHA IS GREATER OR EQUAL TO BETA")
+                    break
 
-
-
-                #We want to return the alpha beta
-            #Prints all other maximizers (ROOT)
             else:
-                print("ELSE")
+                #print("ELSE")
                 print(node)
+
+            print(terminalValues)
+
+        if(node.isRoot):
+            return (alpha,leftovernodes)
+        else:
+            return alpha
 
 
     elif(node.minmaxtype==ALPHABETA_TYPES.MINIMIZER):
+        maximizerBetaValues =[]
         for child in node.childrenNodes:
             currentvalue = alphaBetaRecursion(child, alpha, beta) #should return None because no minimizer node is parent of a terminal node
+            maximizerBetaValues.append(currentvalue)
 
-            if (isinstance(currentvalue, int)):
-                print(currentvalue)
+            if(isinstance(currentvalue,int)):
+                maximizerBeta = currentvalue
+                beta = min(maximizerBeta,beta)
+
+                if(alpha>=beta):
+                    print("ALPHA IS GREATER OR EQUAL TO BETA")
+                    break
+
             else:
-                print(currentvalue)
+                print("MINIMIZER GOT:"+str(currentvalue))
+                print('MAXIMIZER BETA VALUES:'+str(maximizerBetaValues))
 
+        return beta
 
-
-
-# prunedStates = []
-# def minimax(depth, nodeIndex, maximizingPlayer,
-#             values, alpha, beta):
-#     # Terminating condition. i.e
-#     # leaf node is reached
-#     if depth == 3:
-#         return values[nodeIndex]
-#
-#     if maximizingPlayer:
-#
-#         best = alpha
-#
-#         # Recur for left and right children
-#         for i in range(0, 2):
-#
-#             val = minimax(depth + 1, nodeIndex * 2 + i,
-#                           False, values, alpha, beta)
-#             best = max(best, val)
-#             alpha = max(alpha, best)
-#
-#             # Alpha Beta Pruning
-#             if beta <= alpha:
-#                 break
-#
-#         return best
-#
-#     else:
-#         best = beta
-#
-#         # Recur for left and
-#         # right children
-#         for i in range(0, 2):
-#             val = minimax(depth + 1, nodeIndex * 2 + i,
-#                           True, values, alpha, beta)
-#             best = min(best, val)
-#             beta = min(beta, best)
-#
-#             # Alpha Beta Pruning
-#             if beta <= alpha:
-#                 break
-#
-#         return best
-
-
-
-
-# if __name__ == "__main__":
-#     values = [3, 5, 6, 9, 1, 2, 0, -1]
-#     print("The optimal value is :", minimax(0, 0, True, values, NEGATIVE_INFINITY, POSITIVE_INFINITY))
-#     print(prunedStates)
-#terminalstates = getUserInputNumbers(12)
-terminalstates = [4,6,7,9,1,2,0,1]
+terminalstates = [4,6,7,9,1,2,0,1,8,1,9,2]
 print("Terminal states:"+str(terminalstates))
 
 
@@ -274,4 +239,4 @@ currtree = MinMaxTree(n_RootChildrenMinimizers=3,listOfTerminalValues=terminalst
 currtree.printTreeFromRoot()
 MinMaxTree.printNode(currtree.root)
 
-alphaBetaRecursion(currtree.root,NEGATIVE_INFINITY,POSITIVE_INFINITY)
+print(alphaBetaRecursion(currtree.root,NEGATIVE_INFINITY,POSITIVE_INFINITY))
