@@ -26,7 +26,7 @@ Notes: (by Miguel Zavala)
     Minimizer state = upside down triangle = beta will be changed
     You do a left-right traversal along the tree
     
-    AlphaBeta has two variables: (These are passed down edge to node to edge, left to right of tree) 
+    AlphaBeta has two variables: (These are passed down node to child to child and then passed up to parent, left to right of tree) 
     Alpha = contains highest max value currently found, initialized with worst value = -infinity
     Beta = contains lowest min value currently found, initialized with worst value = +infinity
 
@@ -43,6 +43,9 @@ POSITIVE_INFINITY = float('inf')
 NEGATIVE_INFINITY = float('-inf')
 
 
+
+#Method to get the terminal states input from user
+#Returns a list of integers
 def getUserInputNumbers(n:int=12)->[int]:
     listOfNumbers = []
     i=1
@@ -61,6 +64,21 @@ def getUserInputNumbers(n:int=12)->[int]:
     #print("These are your input values:"+str(listOfNumbers))
     return listOfNumbers
 
+#Method to get the terminal states input from user
+#Returns a list of integers
+def getUserInputNumbers2(n:int=12)->[int]:
+    print("Enter 12 numbers separated by a (space) EX: 5 3 5 4 3 5 1 etc")
+    stringinput = input()
+    listOfStrings = stringinput.split(" ")
+
+    listOfNumbers = []
+    for s in listOfStrings:
+        if(s.isdigit()):
+            listOfNumbers.append(int(s))
+
+    return listOfNumbers
+
+#Enumeration type for alpha beta constants such 'Maximizer','Minimizer', and 'Terminal'
 class ALPHABETA_TYPES(Enum):
     MAXIMIZER = 'maximizer'
     MINIMIZER = 'minimizer'
@@ -77,24 +95,8 @@ class AlphaBetaNode:
         self.minmaxtype = minmaxtype
         self.parentNode = parentNode
 
-
         if(self.minmaxtype==ALPHABETA_TYPES.TERMINAL):
             self.terminalValue = terminalValue
-
-
-
-    def getAlphaBetaFromOtherNode(self,othernode):
-        self.alpha = othernode.alpha
-        self.beta = othernode.beta
-
-    def checkAlphaBetaValues(self):
-        isAlphaGreater = self.alpha >= self.beta
-        if(isAlphaGreater):
-            print("ALPHA IS GREATER THAN OR EQUAL TO BETA")
-        else:
-            print("ALPHA IS NOT GREATER THAN OR EQUAL TO BETA")
-        return isAlphaGreater
-
 
 
     def __str__(self):
@@ -115,12 +117,14 @@ class MinMaxTree:
                  n_MaximizerChildren: int = 2,listOfTerminalValues=[]):
         self.root = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.MAXIMIZER,isRoot=True)
 
-
         self.listOfTerminalValues = listOfTerminalValues
         self.currentTerminalNodeIndex = 0
 
-        self.foundFirstTerminalNode = False
+        self.remainingNodes = []
+        self.prunedNodes = []
+        self.prunedIndexes = []
 
+        #Creates the Min Max Tree
         for i in range(n_RootChildrenMinimizers):
             currentMinimizerNode = AlphaBetaNode(minmaxtype=ALPHABETA_TYPES.MINIMIZER,parentNode=self.root,childrenNodes=[])
             self.root.childrenNodes.append(currentMinimizerNode)
@@ -140,10 +144,6 @@ class MinMaxTree:
                         currentMaximizerNode.childrenNodes.append(currentTerminalNode)
                         self.currentTerminalNodeIndex+=1
 
-
-
-        print(self.root)
-
     def printNode(node):
         tmp = node
         if(tmp.isRoot):
@@ -162,81 +162,121 @@ class MinMaxTree:
     def printTreeFromRoot(self):
         MinMaxTree.printNode(self.root)
 
+    #Compares the remaining nodes with the initial given terminal values and finds
+    #out which terminal values were pruned
+    def findPrunesIndexes(self):
+        k=0
+        for i in range(len(self.listOfTerminalValues)):
+            currTerminalValue = self.listOfTerminalValues[i]
 
+            try:
+                currLeftOverNode = self.remainingNodes[k]
+                if(currLeftOverNode==currTerminalValue):
+                    ''
+                    #print("Found corresponding node, Good")
+                else:
+                    #print("Did not find corresponding node")
+                    self.prunedNodes.append(currTerminalValue)
+                    self.prunedIndexes.append(i)
+                    continue
+            except:
+                self.prunedNodes.append(currTerminalValue)
+                self.prunedIndexes.append(i)
 
+            k+=1
 
-leftovernodes = []
-def alphaBetaRecursion(node, alpha, beta):
-    # Base Case:
-    if (node.minmaxtype==ALPHABETA_TYPES.TERMINAL):
-        #print("ENTERED")
-        print("CURRENT TERMINAL NODE:"+str(node.terminalValue))
-        leftovernodes.append(node.terminalValue)
-        print("LEFT OVER NODES"+str(leftovernodes))
-        return node.terminalValue
-    elif(node.minmaxtype==ALPHABETA_TYPES.MAXIMIZER):
-        totalsum = 0
+    #Recurses through the alpha beta min max tree and applies alpha beta pruning
+    #Returns a dictionary containing information about the min max tree such as 'value', 'remainingNodes', 'prunedNodes' and 'prunedIndexes'
+    def alphaBetaRecursion(self,node, alpha, beta):
+        # Base Case:
+        if (node.minmaxtype == ALPHABETA_TYPES.TERMINAL):
+            # print("ENTERED")
+            #print("CURRENT TERMINAL NODE:" + str(node.terminalValue))
+            self.remainingNodes.append(node.terminalValue)
+            #print("LEFT OVER NODES" + str(self.remainingNodes))
+            return node.terminalValue
+        elif (node.minmaxtype == ALPHABETA_TYPES.MAXIMIZER):
+            totalsum = 0
 
-        terminalValues = []
-        for child in node.childrenNodes:
-            #Gets each child's values
-            currentvalue = alphaBetaRecursion(child,alpha,beta)
+            terminalValues = []
+            for child in node.childrenNodes:
+                # Gets each child's values
+                currentvalue = self.alphaBetaRecursion(child, alpha, beta)
 
-            # Terminal Parent Maximizers:
-            # Gets the terminal node values:
-            if (isinstance(currentvalue, int)):
-                terminalValues.append(currentvalue)
-                print("TERMINAL VALUES:" + str(terminalValues))
-                #print(node)
-                #print(currentvalue)
-                alpha = max(alpha, currentvalue)  # Sets alpha to the biggest found value
-                #print("NEW ALPHA:" + str(alpha))
-                totalsum += currentvalue
-                #print(totalsum)
+                # Terminal Parent Maximizers:
+                # Gets the terminal node values:
+                if (isinstance(currentvalue, int)):
+                    terminalValues.append(currentvalue)
+                    #print("TERMINAL VALUES:" + str(terminalValues))
+                    # print(node)
+                    # print(currentvalue)
+                    alpha = max(alpha, currentvalue)  # Sets alpha to the biggest found value
+                    # print("NEW ALPHA:" + str(alpha))
+                    totalsum += currentvalue
+                    # print(totalsum)
 
-                if (alpha >= beta):
-                    print("ALPHA IS GREATER OR EQUAL TO BETA")
-                    break
+                    if (alpha >= beta):
+                        #print("ALPHA IS GREATER OR EQUAL TO BETA")
+                        break
 
+                else:
+                    ''
+                    # print("ELSE")
+                    #print(node)
+
+                #print(terminalValues)
+
+            if (node.isRoot):
+                self.findPrunesIndexes()
+                return {
+                    'value': alpha,
+                    'remainingNodes': self.remainingNodes,
+                    'prunedNodes':self.prunedNodes,
+                    'prunedIndexes':self.prunedIndexes
+                }
             else:
-                #print("ELSE")
-                print(node)
-
-            print(terminalValues)
-
-        if(node.isRoot):
-            return (alpha,leftovernodes)
-        else:
-            return alpha
+                return alpha
 
 
-    elif(node.minmaxtype==ALPHABETA_TYPES.MINIMIZER):
-        maximizerBetaValues =[]
-        for child in node.childrenNodes:
-            currentvalue = alphaBetaRecursion(child, alpha, beta) #should return None because no minimizer node is parent of a terminal node
-            maximizerBetaValues.append(currentvalue)
+        elif (node.minmaxtype == ALPHABETA_TYPES.MINIMIZER):
+            maximizerBetaValues = []
+            for child in node.childrenNodes:
+                currentvalue = self.alphaBetaRecursion(child, alpha,
+                                                  beta)  # should return None because no minimizer node is parent of a terminal node
+                maximizerBetaValues.append(currentvalue)
 
-            if(isinstance(currentvalue,int)):
-                maximizerBeta = currentvalue
-                beta = min(maximizerBeta,beta)
+                if (isinstance(currentvalue, int)):
+                    maximizerBeta = currentvalue
+                    beta = min(maximizerBeta, beta)
 
-                if(alpha>=beta):
-                    print("ALPHA IS GREATER OR EQUAL TO BETA")
-                    break
+                    if (alpha >= beta):
+                        #print("ALPHA IS GREATER OR EQUAL TO BETA")
+                        break
 
-            else:
-                print("MINIMIZER GOT:"+str(currentvalue))
-                print('MAXIMIZER BETA VALUES:'+str(maximizerBetaValues))
+                else:
+                    ''
+                    #print("MINIMIZER GOT:" + str(currentvalue))
+                    #print('MAXIMIZER BETA VALUES:' + str(maximizerBetaValues))
 
-        return beta
-
-terminalstates = [4,6,7,9,1,2,0,1,8,1,9,2]
-print("Terminal states:"+str(terminalstates))
+            return beta
 
 
-currtree = MinMaxTree(n_RootChildrenMinimizers=3,listOfTerminalValues=terminalstates)
 
-currtree.printTreeFromRoot()
-MinMaxTree.printNode(currtree.root)
 
-print(alphaBetaRecursion(currtree.root,NEGATIVE_INFINITY,POSITIVE_INFINITY))
+
+
+terminalstates = [4,6,7,9,1,2,0,1,8,1,9,2] #fixed variable to test alpha beta without inputting numbers
+terminalstates = getUserInputNumbers2(12) #Gets user input for terminal values
+print("Given terminal states:"+str(terminalstates))
+
+
+currtree = MinMaxTree(n_RootChildrenMinimizers=30,listOfTerminalValues=terminalstates)
+
+#currtree.printTreeFromRoot()
+#MinMaxTree.printNode(currtree.root)
+
+
+print("Thus after performing AlphaBeta Pruning with min max, we get:")
+results = currtree.alphaBetaRecursion(currtree.root,NEGATIVE_INFINITY,POSITIVE_INFINITY)
+print(results)
+print("The pruned indexes are:"+str(results['prunedIndexes']))
